@@ -1,0 +1,49 @@
+В $court_name
+                                $court_address
+
+        Истец: $plaintiff_name
+        Адрес: $plaintiff_address
+        Телефон: $plaintiff_phone
+        $plaintiff_email_block
+
+        Ответчик: $defendant_name
+        Адрес: $defendant_address
+        ИНН: $defendant_inn
+        ОГРН: $defendant_ogrn
+
+                        ИСКОВОЕ ЗАЯВЛЕНИЕ
+        о $dispute_type
+
+Я, $plaintiff_name, работал(а) в $defendant_name в должности $position с $employment_start_date по $employment_end_date на основании трудового договора №$contract_number от $contract_date.
+
+$dispute_circumstances
+
+В соответствии со статьей $labor_code_article Трудового кодекса Российской Федерации $legal_basis
+
+$pretrial_settlement
+
+На основании изложенного и руководствуясь статьями $labor_code_articles Трудового кодекса РФ, статьями 131-132 Гражданского процессуального кодекса РФ,
+
+                            ПРОШУ:
+
+1. $primary_demand
+
+$additional_demands
+
+$compensation_demand
+
+$legal_costs_demand
+
+Приложения:
+1. Копия трудового договора № $contract_number от $contract_date.
+2. Копия приказа о приеме на работу.
+$termination_order
+$salary_evidence
+$pretrial_documents
+$witness_statements
+$other_attachments
+$copies_statement
+
+        "__" __________ 20__ г.
+
+        Истец: _________________ /$plaintiff_short_name/

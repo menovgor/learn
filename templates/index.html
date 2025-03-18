@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="mb-4">
+            <h2 class="display-6">Создайте юридически грамотный документ</h2>
+            <p class="lead text-muted">
+                Современный подход к формированию процессуальных документов с использованием искусственного интеллекта
+            </p>
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h5><i class="bi bi-lightning-charge text-warning"></i> Как это работает?</h5>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <span>1</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Выберите тип документа</h6>
+                                <p class="text-muted small mb-0">Исковое заявление, претензия и другие</p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <span>2</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Ответьте на вопросы</h6>
+                                <p class="text-muted small mb-0">Система подготовит индивидуальный документ</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <span>3</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Улучшите с помощью ИИ</h6>
+                                <p class="text-muted small mb-0">ИИ сделает документ идеальным</p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <span>4</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Скачайте документ</h6>
+                                <p class="text-muted small mb-0">Готово к использованию в PDF формате</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-stars"></i> Интеллектуальные возможности</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item border-0 d-flex align-items-center">
+                        <i class="bi bi-magic text-primary me-2 fs-5"></i>
+                        <div>
+                            <strong>Улучшение документов</strong>
+                            <p class="mb-0 small text-muted">ИИ улучшает текст и структуру</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item border-0 d-flex align-items-center">
+                        <i class="bi bi-shield-check text-primary me-2 fs-5"></i>
+                        <div>
+                            <strong>Соответствие законодательству</strong>
+                            <p class="mb-0 small text-muted">Актуальные нормы законов России</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item border-0 d-flex align-items-center">
+                        <i class="bi bi-graph-up-arrow text-primary me-2 fs-5"></i>
+                        <div>
+                            <strong>Анализ юридической позиции</strong>
+                            <p class="mb-0 small text-muted">Оценка силы правовых аргументов</p>
+                        </div>
+                    </li>
+                    <li class="list-group-item border-0 d-flex align-items-center">
+                        <i class="bi bi-chat-square-text text-primary me-2 fs-5"></i>
+                        <div>
+                            <strong>Юридическая консультация</strong>
+                            <p class="mb-0 small text-muted">Советы по улучшению документа</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-4 border-bottom pb-2">Выберите тип документа</h3>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for doc_id, doc in document_types.items() %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">{{ doc.name }}</h5>
+                <p class="card-text text-muted">{{ doc.description }}</p>
+            </div>
+            <div class="card-footer bg-white border-top-0">
+                <a href="{{ url_for('questionnaire', doc_type=doc_id) }}" class="btn btn-primary w-100">Выбрать</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

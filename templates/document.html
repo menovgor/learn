@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('questionnaire', doc_type=doc_type) }}">{{ document.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Предпросмотр документа</li>
+            </ol>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Предпросмотр документа</h2>
+            <div>
+                <a href="{{ url_for('reset') }}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-repeat"></i> Начать заново
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ document.name }}</h5>
+                <div>
+                    {% if enhanced %}
+                    <span class="badge bg-success">Улучшено ИИ</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="document-preview p-4 bg-white border" style="font-family: 'Times New Roman', Times, serif; font-size: 14px; line-height: 1.5;">
+                    <pre style="white-space: pre-wrap; font-family: inherit;">{{ document_text }}</pre>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger mt-3">
+                    <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if legal_advice %}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-chat-square-quote"></i> Юридическая консультация</h5>
+            </div>
+            <div class="card-body">
+                <div class="legal-advice p-3 bg-light rounded">
+                    {{ legal_advice | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if strength_analysis %}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Анализ силы юридической позиции</h5>
+            </div>
+            <div class="card-body">
+                <div class="strength-analysis p-3 bg-light rounded">
+                    {{ strength_analysis | safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-tools"></i> Действия с документом</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('preview_document') }}">
+                    <div class="d-grid gap-3">
+                        {% if not enhanced %}
+                        <button type="submit" name="action" value="enhance" class="btn btn-success btn-lg d-flex align-items-center justify-content-center">
+                            <i class="bi bi-magic fs-4 me-2"></i>
+                            <span>
+                                <strong>Улучшить с помощью ИИ</strong>
+                                <small class="d-block text-white-50">Оптимизировать и улучшить текст</small>
+                            </span>
+                        </button>
+                        {% endif %}
+
+                        <button type="submit" name="action" value="legal_advice" class="btn btn-info btn-lg text-white d-flex align-items-center justify-content-center">
+                            <i class="bi bi-chat-square-text fs-4 me-2"></i>
+                            <span>
+                                <strong>Получить консультацию</strong>
+                                <small class="d-block text-white-50">Советы по улучшению документа</small>
+                            </span>
+                        </button>
+
+                        <button type="submit" name="action" value="analyze_strength" class="btn btn-primary btn-lg d-flex align-items-center justify-content-center">
+                            <i class="bi bi-graph-up fs-4 me-2"></i>
+                            <span>
+                                <strong>Анализ позиции</strong>
+                                <small class="d-block text-white-50">Оценка силы аргументов</small>
+                            </span>
+                        </button>
+
+                        <button type="submit" name="action" value="download" class="btn btn-dark btn-lg d-flex align-items-center justify-content-center">
+                            <i class="bi bi-download fs-4 me-2"></i>
+                            <span>
+                                <strong>Скачать документ (PDF)</strong>
+                                <small class="d-block text-white-50">Готовый к печати и подаче</small>
+                            </span>
+                        </button>
+                    </div>
+                </form>
+
+                <hr>
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('questionnaire', doc_type=doc_type) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Вернуться к анкете
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-4 shadow-sm">
+            <h6><i class="bi bi-info-circle"></i> Рекомендации</h6>
+            <ul class="small mb-0">
+                <li>Проверьте правильность всех указанных данных</li>
+                <li>Убедитесь, что суммы задолженности указаны верно</li>
+                <li>Добавьте все необходимые приложения к иску</li>
+                <li>Используйте кнопку "Улучшить с помощью ИИ" для оптимизации текста</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

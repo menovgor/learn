@@ -1,0 +1,315 @@
+{% extends "layout.html" %}
+<div class="progress-tracker">
+  <div class="progress-step active" data-step="1">
+    <div class="step-indicator">1</div>
+    <div class="step-label">Информация об истце</div>
+  </div>
+  <div class="progress-step" data-step="2">
+    <div class="step-indicator">2</div>
+    <div class="step-label">Информация об ответчике</div>
+  </div>
+  <div class="progress-step" data-step="3">
+    <div class="step-indicator">3</div>
+    <div class="step-label">Детали иска</div>
+  </div>
+  <div class="progress-step" data-step="4">
+    <div class="step-indicator">4</div>
+    <div class="step-label">Приложения</div>
+  </div>
+</div>
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ document.name }}</li>
+            </ol>
+        </nav>
+
+        <h2 class="mb-3">{{ document.name }}</h2>
+        <p class="lead text-muted">Заполните необходимую информацию для создания документа</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-9">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <form method="post" action="{{ url_for('questionnaire', doc_type=doc_type) }}" id="questionnaireForm">
+                    {% for section in questions %}
+                    <div class="card mb-4 border-0 shadow-sm section-card" id="section-{{ section.id }}"
+                     data-step="{{ loop.index }}" style="display: {{ 'block' if loop.index == 1 else 'none' }}">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">{{ section.title }}</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row">
+                                {% for field in section.fields %}
+                                <div class="col-md-{% if field.type == 'textarea' %}12{% else %}6{% endif %} mb-3">
+                                    <div class="form-group">
+                                        {% if field.type == 'checkbox' %}
+                                            <div class="form-check">
+                                                <input type="checkbox"
+                                                       class="form-check-input"
+                                                       id="{{ field.name }}"
+                                                       name="{{ field.name }}"
+                                                       value="yes"
+                                                       {% if form_data.get(field.name) == 'yes' %}checked{% endif %}
+                                                       {% if field.required %}required{% endif %}>
+                                                <label class="form-check-label" for="{{ field.name }}">
+                                                    {{ field.label }}
+                                                    {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                                                </label>
+                                            </div>
+                                        {% else %}
+                                            <label for="{{ field.name }}">
+                                                {{ field.label }}
+                                                {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                                            </label>
+
+                                            {% if field.type == 'select' %}
+                                                <select
+                                                    class="form-select {% if errors and errors.get(field.name) %}is-invalid{% endif %}"
+                                                    id="{{ field.name }}"
+                                                    name="{{ field.name }}"
+                                                    {% if field.required %}required{% endif %}>
+                                                    <option value="">Выберите...</option>
+                                                    {% for option in field.options %}
+                                                    <option value="{{ option.value }}" {% if form_data.get(field.name) == option.value %}selected{% endif %}>
+                                                        {{ option.label }}
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                            {% elif field.type == 'textarea' %}
+                                                <textarea
+                                                    class="form-control {% if errors and errors.get(field.name) %}is-invalid{% endif %}"
+                                                    id="{{ field.name }}"
+                                                    name="{{ field.name }}"
+                                                    rows="4"
+                                                    {% if field.required %}required{% endif %}>{{ form_data.get(field.name, '') }}</textarea>
+                                            {% else %}
+                                                <input
+                                                    type="{{ field.type }}"
+                                                    class="form-control {% if errors and errors.get(field.name) %}is-invalid{% endif %}"
+                                                    id="{{ field.name }}"
+                                                    name="{{ field.name }}"
+                                                    value="{{ form_data.get(field.name, '') }}"
+                                                    {% if field.required %}required{% endif %}>
+                                            {% endif %}
+
+                                            {% if errors and errors.get(field.name) %}
+                                                <div class="invalid-feedback">
+                                                    {{ errors.get(field.name) }}
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Согласие на обработку данных</h5>
+    </div>
+    <div class="card-body p-4">
+        <div class="alert alert-info">
+            <h6><i class="bi bi-shield-check"></i> Защита персональных данных</h6>
+            <p class="mb-0">Сервис обрабатывает введенные вами данные в соответствии с требованиями ФЗ-152 "О персональных данных". Данные используются исключительно для генерации документа и не сохраняются на сервере после завершения сессии.</p>
+        </div>
+
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="data_consent" name="data_consent" value="yes" required {% if form_data.get('data_consent') == 'yes' %}checked{% endif %}>
+            <label class="form-check-label" for="data_consent">
+                Я даю согласие на обработку моих персональных данных в соответствии с <a href="{{ url_for('privacy_policy') }}" target="_blank">политикой конфиденциальности</a> для целей создания юридического документа.
+            </label>
+            {% if consent_error %}
+            <div class="text-danger mt-1">
+                {{ consent_error }}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="ai_consent" name="ai_consent" value="yes" {% if form_data.get('ai_consent') == 'yes' %}checked{% endif %}>
+            <label class="form-check-label" for="ai_consent">
+                Я даю согласие на использование анонимизированных данных для улучшения документа с помощью искусственного интеллекта (не обязательно).
+            </label>
+            <div class="form-text text-muted">
+                <small>Если вы не дадите это согласие, вы все равно сможете создать документ, но функции ИИ будут недоступны.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Назад
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Далее <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 20px;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Подсказки</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6><i class="bi bi-info-circle text-primary"></i> Что такое исковое заявление?</h6>
+                    <p class="text-muted small">Исковое заявление - это документ, обращенный к суду с требованием о защите нарушенного права.</p>
+                </div>
+
+                <div class="mb-3">
+                    <h6><i class="bi bi-info-circle text-primary"></i> Подсудность дела</h6>
+                    <p class="text-muted small">Иски о взыскании задолженности между юридическими лицами подаются в арбитражный суд.</p>
+                </div>
+
+                <div class="mb-3">
+                    <h6><i class="bi bi-info-circle text-primary"></i> Срок исковой давности</h6>
+                    <p class="text-muted small">По общему правилу срок исковой давности по взысканию долга составляет 3 года.</p>
+                </div>
+
+                <div class="mb-3">
+                    <h6><i class="bi bi-info-circle text-primary"></i> Госпошлина</h6>
+                    <p class="text-muted small">Размер госпошлины для искового заявления имущественного характера определяется в зависимости от цены иска.</p>
+                </div>
+
+                <div class="text-center">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#aiHelpModal">
+                        <i class="bi bi-robot"></i> Помощь ИИ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно помощи ИИ -->
+<div class="modal fade" id="aiHelpModal" tabindex="-1" aria-labelledby="aiHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="aiHelpModalLabel"><i class="bi bi-robot"></i> Помощь интеллектуального ассистента</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="ai-question" class="form-label">Задайте вопрос по заполнению документа:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="ai-question" placeholder="Например: Что указать в качестве обстоятельств возникновения долга?">
+                        <button class="btn btn-primary" type="button" id="askAI">Спросить</button>
+                    </div>
+                </div>
+
+                <div class="card bg-light mt-3" id="ai-response-card" style="display: none;">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Ответ ассистента:</h6>
+                        <div id="ai-response" class="mt-2"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h6>Популярные вопросы:</h6>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button class="btn btn-sm btn-outline-secondary quick-question">Какие документы приложить к иску?</button>
+                        <button class="btn btn-sm btn-outline-secondary quick-question">Как рассчитать госпошлину?</button>
+                        <button class="btn btn-sm btn-outline-secondary quick-question">Как правильно сформулировать требования?</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Имитация ответов ИИ в модальном окне
+        document.getElementById('askAI').addEventListener('click', function() {
+            const question = document.getElementById('ai-question').value;
+            if (!question) return;
+
+            // Показываем карточку ответа
+            document.getElementById('ai-response-card').style.display = 'block';
+
+            // Добавляем индикатор загрузки
+            document.getElementById('ai-response').innerHTML = '<div class="d-flex align-items-center"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Генерирую ответ...</div>';
+
+            // Имитация задержки ответа от ИИ
+            setTimeout(function() {
+                let response = '';
+
+                if (question.toLowerCase().includes('обстоятельств')) {
+                    response = `<p>В разделе "Обстоятельства возникновения задолженности" необходимо четко и последовательно описать:</p>
+                                <ul>
+                                    <li>Когда и на каких условиях был заключен договор</li>
+                                    <li>Какие обязательства были возложены на каждую из сторон</li>
+                                    <li>Как вы выполнили свои обязательства (с указанием конкретных действий и дат)</li>
+                                    <li>Как ответчик нарушил свои обязательства (конкретные пункты договора)</li>
+                                    <li>Какие меры вы предприняли для досудебного урегулирования (претензии, переговоры)</li>
+                                </ul>
+                                <p>Важно: указывайте только факты, которые можно подтвердить документально.</p>`;
+                } else if (question.toLowerCase().includes('документы') || question.toLowerCase().includes('приложить')) {
+                    response = `<p>К исковому заявлению о взыскании задолженности рекомендуется приложить:</p>
+                                <ul>
+                                    <li>Копию договора с ответчиком</li>
+                                    <li>Документы, подтверждающие исполнение ваших обязательств</li>
+                                    <li>Доказательства неисполнения обязательств ответчиком</li>
+                                    <li>Расчет суммы исковых требований (основной долг, неустойка, проценты)</li>
+                                    <li>Копию претензии и доказательство ее направления ответчику</li>
+                                    <li>Квитанцию об уплате госпошлины</li>
+                                    <li>Доверенность на представителя (если есть)</li>
+                                </ul>`;
+                } else if (question.toLowerCase().includes('госпошлин')) {
+                    response = `<p>Госпошлина по искам имущественного характера рассчитывается по следующим правилам:</p>
+                                <ul>
+                                    <li>До 20 000 руб. - 4% от суммы иска, но не менее 400 руб.</li>
+                                    <li>От 20 001 до 100 000 руб. - 800 руб. + 3% от суммы, превышающей 20 000 руб.</li>
+                                    <li>От 100 001 до 200 000 руб. - 3 200 руб. + 2% от суммы, превышающей 100 000 руб.</li>
+                                    <li>От 200 001 до 1 000 000 руб. - 5 200 руб. + 1% от суммы, превышающей 200 000 руб.</li>
+                                </ul>
+                                <p>Для арбитражных судов действуют другие тарифы. Вы можете воспользоваться онлайн-калькулятором на сайте суда.</p>`;
+                } else if (question.toLowerCase().includes('требовани')) {
+                    response = `<p>При формулировании исковых требований важно:</p>
+                                <ul>
+                                    <li>Быть конкретным и точным в суммах и формулировках</li>
+                                    <li>Разделять основные требования (взыскание основного долга) и дополнительные (неустойка, проценты)</li>
+                                    <li>Формулировать требования в соответствии с текстом договора и нормами закона</li>
+                                </ul>
+                                <p>Пример: "Прошу суд взыскать с ответчика ООО "Компания" в пользу истца ИП Иванов И.И. сумму основного долга в размере 150 000 (сто пятьдесят тысяч) рублей, неустойку за просрочку оплаты в размере 15 000 (пятнадцать тысяч) рублей, проценты за пользование чужими денежными средствами в размере 8 500 (восемь тысяч пятьсот) рублей, а также расходы по уплате государственной пошлины в размере 5 350 (пять тысяч триста пятьдесят) рублей."</p>`;
+                } else {
+                    response = `<p>Для ответа на ваш вопрос мне нужно больше контекста. Пожалуйста, уточните:</p>
+                                <ul>
+                                    <li>К какому разделу документа относится ваш вопрос?</li>
+                                    <li>Какая информация вызывает затруднения?</li>
+                                </ul>
+                                <p>Вы также можете воспользоваться готовыми примерами вопросов ниже.</p>`;
+                }
+
+                document.getElementById('ai-response').innerHTML = response;
+            }, 1500);
+        });
+
+        // Обработка быстрых вопросов
+        document.querySelectorAll('.quick-question').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('ai-question').value = this.textContent;
+                document.getElementById('askAI').click();
+            });
+        });
+    });
+</script>
+{% endblock %}

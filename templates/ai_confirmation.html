@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-exclamation-circle"></i> Подтверждение использования ИИ</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading"><i class="bi bi-info-circle"></i> Важная информация о защите ваших данных</h5>
+                        <p>Вы запросили использование функции искусственного интеллекта (ИИ) для вашего документа. Для выполнения этого действия информация из вашего документа будет передана внешнему сервису OpenAI.</p>
+                    </div>
+
+                    <h5 class="mb-3">Как мы защищаем ваши данные:</h5>
+                    <ul class="mb-4">
+                        <li>Перед отправкой данных мы применяем <strong>анонимизацию</strong>: все имена, адреса, телефоны, ИНН и другие персональные данные заменяются на обезличенные значения.</li>
+                        <li>Система сохраняет только структуру и стиль документа, но не передает ваши настоящие данные.</li>
+                        <li>После завершения сессии все ваши данные автоматически удаляются из системы.</li>
+                        <li>Мы не храним историю ваших запросов и созданных документов.</li>
+                    </ul>
+
+                    <div class="mb-4">
+                        <h5 class="mb-3">Что будет отправлено в AI:</h5>
+                        <div class="bg-light p-3 rounded">
+                            <p class="mb-1"><strong>Вместо вашего имени:</strong> "Иванов Иван Иванович"</p>
+                            <p class="mb-1"><strong>Вместо вашего адреса:</strong> "101000, г. Москва, ул. Примерная, д. 1"</p>
+                            <p class="mb-1"><strong>Вместо вашего телефона:</strong> "+7 (999) 123-45-67"</p>
+                            <p class="mb-1"><strong>Вместо вашего ИНН/ОГРН:</strong> "1234567890"</p>
+                            <p class="mb-0"><strong>Вместо данных контрагента:</strong> "ООО 'Организация'"</p>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">Запрошенное действие:</h5>
+                    <div class="p-3 mb-4 rounded bg-light">
+                        {% if action == "enhance" %}
+                            <p class="mb-0"><i class="bi bi-magic text-primary"></i> <strong>Улучшение документа с помощью ИИ</strong> - оптимизация текста, структуры и юридической терминологии.</p>
+                        {% elif action == "legal_advice" %}
+                            <p class="mb-0"><i class="bi bi-chat-square-text text-info"></i> <strong>Юридическая консультация</strong> - анализ документа и рекомендации по его улучшению.</p>
+                        {% elif action == "analyze_strength" %}
+                            <p class="mb-0"><i class="bi bi-graph-up text-success"></i> <strong>Анализ юридической позиции</strong> - оценка силы аргументов и шансов на успех.</p>
+                        {% endif %}
+                    </div>
+
+                    <form method="post" action="{{ url_for('preview_document') }}">
+                        <input type="hidden" name="action" value="confirm_ai_usage">
+                        <input type="hidden" name="original_action" value="{{ action }}">
+
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                            <label class="form-check-label" for="confirmCheck">
+                                Я подтверждаю, что ознакомлен с условиями обработки моих данных и даю согласие на использование анонимизированных данных для указанных целей.
+                            </label>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('preview_document') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                <i class="bi bi-check-circle"></i> Подтвердить и продолжить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-white">
+                    <p class="small text-muted mb-0">Подробнее о том, как мы обрабатываем данные, можно узнать в нашей <a href="{{ url_for('privacy_policy') }}" target="_blank">Политике конфиденциальности</a>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheck = document.getElementById('confirmCheck');
+    const submitBtn = document.getElementById('submitBtn');
+
+    confirmCheck.addEventListener('change', function() {
+        submitBtn.disabled = !this.checked;
+    });
+});
+</script>
+{% endblock %}

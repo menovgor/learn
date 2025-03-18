@@ -1,0 +1,6 @@
+flask==2.3.3
+python-dotenv==1.0.0
+openai==1.55.3
+num2words==0.5.12
+reportlab==3.6.12
+pycryptodome==3.19.0
