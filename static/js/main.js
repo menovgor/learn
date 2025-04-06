@@ -231,3 +231,254 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFieldsByPersonType();
     // Другие существующие вызовы...
 });
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Включаем всплывающие подсказки
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Валидация полей формы
+    const form = document.getElementById('questionnaireForm');
+    if (form) {
+        // Функция для проверки ИНН
+        function validateINN(inn) {
+            // Разные правила для ИНН физлиц (12 цифр) и организаций (10 цифр)
+            if (!inn.match(/^\d+$/)) return false;
+            if (inn.length === 10) {
+                // Для юридических лиц
+                let checkDigit = calculateCheckDigit(inn, [2, 4, 10, 3, 5, 9, 4, 6, 8]);
+                return inn[9] == checkDigit;
+            } else if (inn.length === 12) {
+                // Для физических лиц
+                let checkDigit1 = calculateCheckDigit(inn, [7, 2, 4, 10, 3, 5, 9, 4, 6, 8]);
+                let checkDigit2 = calculateCheckDigit(inn, [3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8]);
+                return inn[10] == checkDigit1 && inn[11] == checkDigit2;
+            }
+            return false;
+        }
+
+        function calculateCheckDigit(inn, coefficients) {
+            let sum = 0;
+            for (let i = 0; i < coefficients.length; i++) {
+                sum += coefficients[i] * inn[i];
+            }
+            return (sum % 11) % 10;
+        }
+
+        // Функция для проверки ОГРН/ОГРНИП
+        function validateOGRN(ogrn) {
+            if (!ogrn.match(/^\d+$/)) return false;
+            if (ogrn.length === 13) {
+                // Для юридических лиц
+                let checkDigit = (parseInt(ogrn.slice(0, -1)) % 11) % 10;
+                return ogrn[12] == checkDigit;
+            } else if (ogrn.length === 15) {
+                // Для ИП
+                let checkDigit = (parseInt(ogrn.slice(0, -1)) % 13) % 10;
+                return ogrn[14] == checkDigit;
+            }
+            return false;
+        }
+
+        // Валидация поля в зависимости от его типа
+        function validateField(field) {
+            let isValid = true;
+            let errorMessage = '';
+
+            // Если поле обязательное, проверяем его заполнение
+            if (field.required && !field.value.trim()) {
+                isValid = false;
+                errorMessage = 'Это поле обязательно для заполнения';
+            } else if (field.value.trim()) {
+                // Проверяем разные типы полей
+                switch(field.id) {
+                    case 'plaintiff_inn':
+                    case 'defendant_inn':
+                        if (!validateINN(field.value)) {
+                            isValid = false;
+                            errorMessage = 'Неверный формат ИНН. Должно быть 10 цифр для организаций или 12 цифр для физлиц.';
+                        }
+                        break;
+                    case 'plaintiff_ogrn':
+                    case 'defendant_ogrn':
+                        if (!validateOGRN(field.value)) {
+                            isValid = false;
+                            errorMessage = 'Неверный формат ОГРН/ОГРНИП. Должно быть 13 цифр для организаций или 15 цифр для ИП.';
+                        }
+                        break;
+                    case 'plaintiff_phone':
+                        if (!field.value.match(/^(\+7|8)[\s\-]?\(?\d{3}\)?[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}$/)) {
+                            isValid = false;
+                            errorMessage = 'Неверный формат телефона. Пример: +7 (999) 123-45-67';
+                        }
+                        break;
+                    case 'plaintiff_email':
+                        if (field.value && !field.value.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
+                            isValid = false;
+                            errorMessage = 'Неверный формат email.';
+                        }
+                        break;
+                    case 'debt_amount':
+                        if (isNaN(parseFloat(field.value)) || parseFloat(field.value) <= 0) {
+                            isValid = false;
+                            errorMessage = 'Сумма долга должна быть положительным числом.';
+                        }
+                        break;
+                }
+            }
+
+            // Показываем или скрываем сообщение об ошибке
+            const fieldContainer = field.closest('.form-group');
+
+            if (!isValid) {
+                field.classList.add('is-invalid');
+                field.classList.remove('is-valid');
+
+                // Создаем или обновляем сообщение об ошибке
+                let feedbackElement = fieldContainer.querySelector('.invalid-feedback');
+                if (!feedbackElement) {
+                    feedbackElement = document.createElement('div');
+                    feedbackElement.className = 'invalid-feedback';
+                    field.insertAdjacentElement('afterend', feedbackElement);
+                }
+                feedbackElement.textContent = errorMessage;
+            } else {
+                field.classList.remove('is-invalid');
+                field.classList.add('is-valid');
+
+                // Удаляем сообщение об ошибке, если оно есть
+                const feedbackElement = fieldContainer.querySelector('.invalid-feedback');
+                if (feedbackElement) {
+                    feedbackElement.remove();
+                }
+            }
+
+            return isValid;
+        }
+
+        // Добавляем обработчики для всех полей
+        const formFields = form.querySelectorAll('input, select, textarea');
+        formFields.forEach(field => {
+            // Валидация при потере фокуса
+            field.addEventListener('blur', function() {
+                validateField(this);
+            });
+
+            // Валидация при изменении значения (для выпадающих списков и чекбоксов)
+            if (field.tagName === 'SELECT' || field.type === 'checkbox' || field.type === 'radio') {
+                field.addEventListener('change', function() {
+                    validateField(this);
+                });
+            }
+        });
+
+        // Валидация формы перед отправкой
+        form.addEventListener('submit', function(e) {
+            let isFormValid = true;
+
+            // Проверяем все поля
+            formFields.forEach(field => {
+                if (!validateField(field)) {
+                    isFormValid = false;
+                }
+            });
+
+            // Проверяем зависимые поля (например, сумма неустойки не может быть больше суммы долга)
+            const debtAmount = parseFloat(document.getElementById('debt_amount')?.value || 0);
+            const penaltyAmount = parseFloat(document.getElementById('penalty_amount')?.value || 0);
+
+            if (penaltyAmount > debtAmount) {
+                const penaltyField = document.getElementById('penalty_amount');
+                penaltyField.classList.add('is-invalid');
+
+                const fieldContainer = penaltyField.closest('.form-group');
+                let feedbackElement = fieldContainer.querySelector('.invalid-feedback');
+                if (!feedbackElement) {
+                    feedbackElement = document.createElement('div');
+                    feedbackElement.className = 'invalid-feedback';
+                    penaltyField.insertAdjacentElement('afterend', feedbackElement);
+                }
+                feedbackElement.textContent = 'Сумма неустойки не может превышать сумму основного долга.';
+
+                isFormValid = false;
+            }
+
+            if (!isFormValid) {
+                e.preventDefault();
+                // Прокручиваем к первому полю с ошибкой
+                const firstInvalidField = form.querySelector('.is-invalid');
+                if (firstInvalidField) {
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalidField.focus();
+                }
+            }
+        });
+
+        // Зависимые поля (показывать/скрывать в зависимости от значений других полей)
+        const dependentFields = form.querySelectorAll('[data-dependent]');
+
+        function updateDependentFields() {
+            dependentFields.forEach(field => {
+                const dependencyInfo = field.getAttribute('data-dependent').split(':');
+                if (dependencyInfo.length === 2) {
+                    const [dependsOn, valueToShow] = dependencyInfo;
+                    const masterField = document.getElementById(dependsOn);
+
+                    if (masterField) {
+                        const masterValue = masterField.type === 'checkbox' ? masterField.checked : masterField.value;
+                        const fieldRow = field.closest('.col-md-6, .col-md-12');
+
+                        if (masterValue == valueToShow) {
+                            fieldRow.style.display = 'block';
+                            // Проверяем, нужно ли сделать поле обязательным
+                            if (field.hasAttribute('data-required-if-shown')) {
+                                field.required = true;
+                                const label = field.closest('.form-group').querySelector('label');
+                                if (label && !label.querySelector('.text-danger')) {
+                                    label.innerHTML += '<span class="text-danger">*</span>';
+                                }
+                            }
+                        } else {
+                            fieldRow.style.display = 'none';
+                            // Снимаем обязательность при скрытии
+                            field.required = false;
+                        }
+                    }
+                }
+            });
+        }
+
+        // Добавляем обработчики для полей, от которых зависят другие поля
+        const masterFields = new Set();
+        dependentFields.forEach(field => {
+            const dependencyInfo = field.getAttribute('data-dependent').split(':');
+            if (dependencyInfo.length === 2) {
+                masterFields.add(dependencyInfo[0]);
+            }
+        });
+
+        masterFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('change', updateDependentFields);
+            }
+        });
+
+        // Инициализация зависимых полей при загрузке страницы
+        updateDependentFields();
+    }
+
+    // Функция для заполнения примера текста
+    window.fillExampleText = function(fieldId, exampleText) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = exampleText;
+            // Валидируем поле после заполнения
+            const event = new Event('blur');
+            field.dispatchEvent(event);
+        }
+    };
+});

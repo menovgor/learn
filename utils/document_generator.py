@@ -125,6 +125,9 @@ def num_to_words(amount):
         return str(amount)
 
 
+from utils.inflection import get_inflected_data
+
+
 def generate_document(doc_type, form_data):
     """
     Генерирует текст документа на основе шаблона и заполненных данных.
@@ -138,28 +141,39 @@ def generate_document(doc_type, form_data):
     for key, value in form_data.items():
         data[key] = value
 
+    # Добавляем склонённые варианты имён (если функция доступна)
+    try:
+        from utils.inflection import get_inflected_data
+        data.update(get_inflected_data(form_data))
+    except ImportError:
+        # Если библиотека склонений не установлена, используем базовый подход
+        if 'defendant_name' in form_data:
+            data['defendant_name_gent'] = form_data['defendant_name']
+
     # Текущая дата
     current_date = datetime.datetime.now()
     data['current_date'] = current_date.strftime('%d.%m.%Y')
     data['current_full_date'] = f"{current_date.strftime('%d.%m.%Y')} г."
 
-    # Форматирование дат
-    if 'contract_date' in form_data:
-        data['claim_date'] = format_date(form_data['contract_date'])
-
-    # Специфические для типа документа преобразования
+    # Общие форматирования для всех типов документов
     if doc_type == 'debt_collection':
-        # Конвертация суммы долга в слова
-        if 'debt_amount' in form_data and form_data['debt_amount']:
-            debt_amount = form_data['debt_amount']
-            data['debt_amount_str'] = "{:,.2f}".format(float(debt_amount)).replace(',', ' ')
-            data['debt_amount_words'] = num_to_words(debt_amount)
+        # Форматирование дат для займа
+        if 'loan_date' in form_data:
+            data['loan_date'] = format_date(form_data['loan_date'])
+        if 'repayment_date' in form_data:
+            data['repayment_date'] = format_date(form_data['repayment_date'])
 
-        # Определение типа истца/ответчика
-        if form_data.get('plaintiff_type') == 'legal':
-            data['plaintiff_ogrn_label'] = 'ОГРН'
-        else:
-            data['plaintiff_ogrn_label'] = 'ОГРНИП'
+        # Конвертация суммы займа в слова
+        if 'loan_amount' in form_data and form_data['loan_amount']:
+            loan_amount = float(form_data['loan_amount'])
+            data['loan_amount_str'] = "{:,.2f}".format(loan_amount).replace(',', ' ')
+            data['loan_amount_words'] = num_to_words(loan_amount)
+
+        # Конвертация суммы госпошлины в слова
+        if 'court_fee' in form_data and form_data['court_fee']:
+            court_fee = float(form_data['court_fee'])
+            data['court_fee_str'] = "{:,.2f}".format(court_fee).replace(',', ' ')
+            data['court_fee_words'] = num_to_words(court_fee)
 
         # Email блок
         if 'plaintiff_email' in form_data and form_data['plaintiff_email']:
@@ -178,76 +192,20 @@ def generate_document(doc_type, form_data):
         else:
             data['defendant_ogrn_block'] = ""
 
-        # Блоки о неустойке и процентах
-        if 'penalty_amount' in form_data and form_data['penalty_amount'] and float(form_data['penalty_amount']) > 0:
-            penalty_amount = float(form_data['penalty_amount'])
-            data[
-                'penalty_block'] = f"Также в соответствии с пунктом ___ Договора за нарушение сроков оплаты предусмотрена неустойка в размере {penalty_amount:,.2f} ({num_to_words(penalty_amount)}) рублей."
-            data[
-                'penalty_claim'] = f"2. Взыскать с Ответчика {form_data.get('defendant_name')} в пользу Истца {form_data.get('plaintiff_name')} неустойку в размере {penalty_amount:,.2f} ({num_to_words(penalty_amount)}) рублей."
+        # Подпись истца
+        if 'plaintiff_signature' in form_data and form_data['plaintiff_signature']:
+            data['plaintiff_signature'] = form_data['plaintiff_signature']
         else:
-            data['penalty_block'] = ""
-            data['penalty_claim'] = ""
-
-        if 'interest_rate' in form_data and form_data['interest_rate'] and float(form_data['interest_rate']) > 0:
-            interest_rate = form_data['interest_rate']
-            data[
-                'interest_block'] = f"Кроме того, в соответствии со ст. 395 ГК РФ за пользование чужими денежными средствами подлежат начислению проценты по ключевой ставке Банка России в размере {interest_rate}%."
-            data[
-                'interest_claim'] = f"3. Взыскать с Ответчика {form_data.get('defendant_name')} в пользу Истца {form_data.get('plaintiff_name')} проценты за пользование чужими денежными средствами, начисленные на сумму долга."
-        else:
-            data['interest_block'] = ""
-            data['interest_claim'] = ""
-
-        # Блок о претензии
-        if 'has_pretension' in form_data and form_data['has_pretension'] == 'yes':
-            data[
-                'pretension_block'] = "В адрес Ответчика была направлена претензия с требованием оплатить задолженность, однако до настоящего времени оплата не произведена, ответ на претензию не получен."
-        else:
-            data['pretension_block'] = ""
-
-        # Дополнительные статьи ГК РФ
-        data['additional_articles'] = "317, 395"
+            data['plaintiff_signature'] = "_______________"
 
         # Истец сокращенно
         if 'plaintiff_name' in form_data:
             plaintiff_name = form_data['plaintiff_name']
             name_parts = plaintiff_name.split()
-            if len(name_parts) >= 3 and form_data.get('plaintiff_type') == 'individual':
+            if len(name_parts) >= 3:
                 data['plaintiff_short_name'] = f"{name_parts[0]} {name_parts[1][0]}.{name_parts[2][0]}."
             else:
                 data['plaintiff_short_name'] = plaintiff_name
-
-        # Судебные расходы
-        data[
-            'costs_claim'] = f"4. Взыскать с Ответчика в пользу Истца расходы по уплате государственной пошлины в размере ___ рублей."
-
-        # Дополнительные приложения
-        additional_attachments = []
-        if 'has_pretension' in form_data and form_data['has_pretension'] == 'yes':
-            additional_attachments.append("5. Копия претензии и доказательства ее направления.")
-
-        if 'has_correspondence' in form_data and form_data['has_correspondence'] == 'yes':
-            additional_attachments.append(f"{5 + len(additional_attachments)}. Копии переписки сторон.")
-
-        if 'other_attachments' in form_data and form_data['other_attachments']:
-            attachments = form_data['other_attachments'].split('\n')
-            for attachment in attachments:
-                if attachment.strip():
-                    additional_attachments.append(f"{5 + len(additional_attachments)}. {attachment.strip()}.")
-
-        if additional_attachments:
-            data['additional_attachments'] = '\n'.join(additional_attachments)
-        else:
-            data['additional_attachments'] = ""
-
-        # Описание предмета договора и обязательств ответчика
-        data[
-            'contract_subject'] = "Истец обязался выполнить [описание работ/услуг/поставки товара], а Ответчик обязался принять и оплатить их"
-        data['defendant_obligation'] = "оплатить [работы/услуги/товар] в размере [сумма] рублей"
-        data['execution_confirmation'] = "[перечень документов, подтверждающих исполнение]"
-
-
 
     elif doc_type == 'labor_dispute':
         # Форматирование дат

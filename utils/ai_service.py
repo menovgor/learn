@@ -12,7 +12,7 @@ os.environ.pop('http_proxy', None)
 os.environ.pop('https_proxy', None)
 
 # Создаем клиента OpenAI
-client = OpenAI(api_key=config.OPENAI_API_KEY)
+client = OpenAI(api_key="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")
 
 
 def enhance_document(document_text):

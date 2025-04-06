@@ -4,6 +4,7 @@ import base64
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import os
+import json
 
 
 def anonymize_data(document_text):
@@ -131,10 +132,20 @@ def decrypt_data(encrypted_data, secret_key):
         # Дешифрование данных
         pt = unpad(cipher.decrypt(ct), AES.block_size)
 
-        # Преобразование строки обратно в словарь (требует осторожности)
-        # В реальном приложении лучше использовать JSON
+        # Преобразование строки обратно в словарь
         data_str = pt.decode('utf-8')
-        data = eval(data_str)  # Замечание: eval небезопасен в продакшн-коде, лучше использовать json.loads
+
+        # Добавляем отладочный вывод
+        print(f"Дешифрованная строка: {data_str[:100]}...")
+
+        # Безопасное преобразование в словарь
+        try:
+            import json
+            data = json.loads(data_str)
+        except json.JSONDecodeError:
+            # Если не удалось использовать json.loads, пробуем ast.literal_eval
+            import ast
+            data = ast.literal_eval(data_str)
 
         return data
 

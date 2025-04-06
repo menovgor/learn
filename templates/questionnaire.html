@@ -1,22 +1,5 @@
 {% extends "layout.html" %}
-<div class="progress-tracker">
-  <div class="progress-step active" data-step="1">
-    <div class="step-indicator">1</div>
-    <div class="step-label">Информация об истце</div>
-  </div>
-  <div class="progress-step" data-step="2">
-    <div class="step-indicator">2</div>
-    <div class="step-label">Информация об ответчике</div>
-  </div>
-  <div class="progress-step" data-step="3">
-    <div class="step-indicator">3</div>
-    <div class="step-label">Детали иска</div>
-  </div>
-  <div class="progress-step" data-step="4">
-    <div class="step-indicator">4</div>
-    <div class="step-label">Приложения</div>
-  </div>
-</div>
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
@@ -38,8 +21,7 @@
             <div class="card-body p-4">
                 <form method="post" action="{{ url_for('questionnaire', doc_type=doc_type) }}" id="questionnaireForm">
                     {% for section in questions %}
-                    <div class="card mb-4 border-0 shadow-sm section-card" id="section-{{ section.id }}"
-                     data-step="{{ loop.index }}" style="display: {{ 'block' if loop.index == 1 else 'none' }}">
+                    <div class="card mb-4 border-0 shadow-sm">
                         <div class="card-header bg-light">
                             <h5 class="mb-0">{{ section.title }}</h5>
                         </div>
@@ -66,6 +48,11 @@
                                             <label for="{{ field.name }}">
                                                 {{ field.label }}
                                                 {% if field.required %}<span class="text-danger">*</span>{% endif %}
+                                                {% if field.help_text %}
+                                                <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ field.help_text }}">
+                                                    <i class="bi bi-question-circle text-muted"></i>
+                                                </span>
+                                                {% endif %}
                                             </label>
 
                                             {% if field.type == 'select' %}
@@ -73,7 +60,8 @@
                                                     class="form-select {% if errors and errors.get(field.name) %}is-invalid{% endif %}"
                                                     id="{{ field.name }}"
                                                     name="{{ field.name }}"
-                                                    {% if field.required %}required{% endif %}>
+                                                    {% if field.required %}required{% endif %}
+                                                    {% if field.data_dependent %}data-dependent="{{ field.data_dependent }}"{% endif %}>
                                                     <option value="">Выберите...</option>
                                                     {% for option in field.options %}
                                                     <option value="{{ option.value }}" {% if form_data.get(field.name) == option.value %}selected{% endif %}>
@@ -87,7 +75,19 @@
                                                     id="{{ field.name }}"
                                                     name="{{ field.name }}"
                                                     rows="4"
+                                                    placeholder="{{ field.placeholder|default('') }}"
+                                                    {% if field.minlength %}minlength="{{ field.minlength }}"{% endif %}
+                                                    {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %}
                                                     {% if field.required %}required{% endif %}>{{ form_data.get(field.name, '') }}</textarea>
+                                                {% if field.example_text %}
+                                        <div class="form-text mt-1">
+                                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 example-button"
+                                                    data-field="{{ field.name }}"
+                                                    data-example="{{ field.example_text }}">
+                                                <i class="bi bi-lightbulb"></i> Пример заполнения
+                                            </button>
+                                        </div>
+                                        {% endif %}
                                             {% else %}
                                                 <input
                                                     type="{{ field.type }}"
@@ -95,12 +95,25 @@
                                                     id="{{ field.name }}"
                                                     name="{{ field.name }}"
                                                     value="{{ form_data.get(field.name, '') }}"
+                                                    placeholder="{{ field.placeholder|default('') }}"
+                                                    {% if field.pattern %}pattern="{{ field.pattern }}"{% endif %}
+                                                    {% if field.min %}min="{{ field.min }}"{% endif %}
+                                                    {% if field.max %}max="{{ field.max }}"{% endif %}
+                                                    {% if field.minlength %}minlength="{{ field.minlength }}"{% endif %}
+                                                    {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %}
+                                                    {% if field.step %}step="{{ field.step }}"{% endif %}
                                                     {% if field.required %}required{% endif %}>
                                             {% endif %}
 
                                             {% if errors and errors.get(field.name) %}
                                                 <div class="invalid-feedback">
                                                     {{ errors.get(field.name) }}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if field.hint_text %}
+                                                <div class="form-text text-muted small">
+                                                    <i class="bi bi-info-circle"></i> {{ field.hint_text }}
                                                 </div>
                                             {% endif %}
                                         {% endif %}
@@ -113,45 +126,45 @@
                     {% endfor %}
 
                     <div class="card mb-4 border-0 shadow-sm">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">Согласие на обработку данных</h5>
-    </div>
-    <div class="card-body p-4">
-        <div class="alert alert-info">
-            <h6><i class="bi bi-shield-check"></i> Защита персональных данных</h6>
-            <p class="mb-0">Сервис обрабатывает введенные вами данные в соответствии с требованиями ФЗ-152 "О персональных данных". Данные используются исключительно для генерации документа и не сохраняются на сервере после завершения сессии.</p>
-        </div>
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Согласие на обработку данных</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-shield-check"></i> Защита персональных данных</h6>
+                                <p class="mb-0">Сервис обрабатывает введенные вами данные в соответствии с требованиями ФЗ-152 "О персональных данных". Данные используются исключительно для генерации документа и не сохраняются на сервере после завершения сессии.</p>
+                            </div>
 
-        <div class="form-check mb-3">
-            <input type="checkbox" class="form-check-input" id="data_consent" name="data_consent" value="yes" required {% if form_data.get('data_consent') == 'yes' %}checked{% endif %}>
-            <label class="form-check-label" for="data_consent">
-                Я даю согласие на обработку моих персональных данных в соответствии с <a href="{{ url_for('privacy_policy') }}" target="_blank">политикой конфиденциальности</a> для целей создания юридического документа.
-            </label>
-            {% if consent_error %}
-            <div class="text-danger mt-1">
-                {{ consent_error }}
-            </div>
-            {% endif %}
-        </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="data_consent" name="data_consent" value="yes" required {% if form_data.get('data_consent') == 'yes' %}checked{% endif %}>
+                                <label class="form-check-label" for="data_consent">
+                                    Я даю согласие на обработку моих персональных данных в соответствии с <a href="{{ url_for('privacy_policy') }}" target="_blank">политикой конфиденциальности</a> для целей создания юридического документа.
+                                </label>
+                                {% if consent_error %}
+                                <div class="text-danger mt-1">
+                                    {{ consent_error }}
+                                </div>
+                                {% endif %}
+                            </div>
 
-        <div class="form-check mb-3">
-            <input type="checkbox" class="form-check-input" id="ai_consent" name="ai_consent" value="yes" {% if form_data.get('ai_consent') == 'yes' %}checked{% endif %}>
-            <label class="form-check-label" for="ai_consent">
-                Я даю согласие на использование анонимизированных данных для улучшения документа с помощью искусственного интеллекта (не обязательно).
-            </label>
-            <div class="form-text text-muted">
-                <small>Если вы не дадите это согласие, вы все равно сможете создать документ, но функции ИИ будут недоступны.</small>
-            </div>
-        </div>
-    </div>
-</div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="ai_consent" name="ai_consent" value="yes" {% if form_data.get('ai_consent') == 'yes' %}checked{% endif %}>
+                                <label class="form-check-label" for="ai_consent">
+                                    Я даю согласие на использование анонимизированных данных для улучшения документа с помощью искусственного интеллекта (не обязательно).
+                                </label>
+                                <div class="form-text text-muted">
+                                    <small>Если вы не дадите это согласие, вы все равно сможете создать документ, но функции ИИ будут недоступны.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Назад
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            Далее <i class="bi bi-arrow-right"></i>
+                            Сформировать документ <i class="bi bi-arrow-right"></i>
                         </button>
                     </div>
                 </form>
@@ -165,24 +178,36 @@
                 <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Подсказки</h5>
             </div>
             <div class="card-body">
+                <!-- Существующие подсказки -->
                 <div class="mb-3">
                     <h6><i class="bi bi-info-circle text-primary"></i> Что такое исковое заявление?</h6>
                     <p class="text-muted small">Исковое заявление - это документ, обращенный к суду с требованием о защите нарушенного права.</p>
                 </div>
 
-                <div class="mb-3">
-                    <h6><i class="bi bi-info-circle text-primary"></i> Подсудность дела</h6>
-                    <p class="text-muted small">Иски о взыскании задолженности между юридическими лицами подаются в арбитражный суд.</p>
+                <!-- Новые динамические подсказки в зависимости от секции -->
+                <div class="mb-3 section-hint" id="plaintiff_info-hint">
+                    <h6><i class="bi bi-person-fill text-primary"></i> Информация об истце</h6>
+                    <p class="text-muted small">Истец — лицо, которое обращается в суд за защитой своего нарушенного права. Укажите здесь ваши данные или данные организации, которую вы представляете.</p>
                 </div>
 
-                <div class="mb-3">
-                    <h6><i class="bi bi-info-circle text-primary"></i> Срок исковой давности</h6>
-                    <p class="text-muted small">По общему правилу срок исковой давности по взысканию долга составляет 3 года.</p>
+                <div class="mb-3 section-hint" id="defendant_info-hint" style="display:none;">
+                    <h6><i class="bi bi-person text-danger"></i> Информация об ответчике</h6>
+                    <p class="text-muted small">Ответчик — лицо, которое, по мнению истца, нарушило его права. Важно указать точные данные ответчика для правильного вручения ему судебных документов.</p>
                 </div>
 
-                <div class="mb-3">
-                    <h6><i class="bi bi-info-circle text-primary"></i> Госпошлина</h6>
-                    <p class="text-muted small">Размер госпошлины для искового заявления имущественного характера определяется в зависимости от цены иска.</p>
+                <div class="mb-3 section-hint" id="court_info-hint" style="display:none;">
+                    <h6><i class="bi bi-building text-primary"></i> Выбор суда</h6>
+                    <p class="text-muted small">Арбитражный суд рассматривает споры между юридическими лицами и ИП. Суд общей юрисдикции — если одна из сторон физическое лицо.</p>
+                </div>
+
+                <div class="mb-3 section-hint" id="claim_details-hint" style="display:none;">
+                    <h6><i class="bi bi-card-list text-primary"></i> Детали требования</h6>
+                    <p class="text-muted small">Здесь необходимо подробно указать информацию о договоре, сумме долга и обстоятельствах, которые привели к возникновению задолженности.</p>
+                </div>
+
+                <div class="mb-3 section-hint" id="attachments-hint" style="display:none;">
+                    <h6><i class="bi bi-paperclip text-primary"></i> Приложения</h6>
+                    <p class="text-muted small">К исковому заявлению необходимо приложить документы, подтверждающие ваши требования. Это могут быть договоры, акты, платежные документы и т.д.</p>
                 </div>
 
                 <div class="text-center">
@@ -192,6 +217,45 @@
                 </div>
             </div>
         </div>
+
+        <!-- Добавьте JavaScript для переключения подсказок -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Функция для отображения подсказок в зависимости от секции
+                function showSectionHints() {
+                    // Скрываем все подсказки
+                    document.querySelectorAll('.section-hint').forEach(hint => {
+                        hint.style.display = 'none';
+                    });
+
+                    // Находим видимую секцию
+                    const visibleSections = Array.from(document.querySelectorAll('.card.mb-4')).filter(section => {
+                        const rect = section.getBoundingClientRect();
+                        return rect.top >= 0 && rect.top <= window.innerHeight / 2;
+                    });
+
+                    if (visibleSections.length > 0) {
+                        // Берем первую видимую секцию
+                        const visibleSection = visibleSections[0];
+                        const sectionId = visibleSection.querySelector('.card-header h5').textContent.trim().toLowerCase()
+                            .replace(/\s+/g, '_')
+                            .replace(/[^a-zA-Z0-9_]/g, '');
+
+                        // Отображаем соответствующую подсказку
+                        const hint = document.getElementById(`${sectionId}-hint`);
+                        if (hint) {
+                            hint.style.display = 'block';
+                        }
+                    }
+                }
+
+                // Отслеживаем скролл для обновления подсказок
+                window.addEventListener('scroll', showSectionHints);
+
+                // Инициализация при загрузке страницы
+                showSectionHints();
+            });
+        </script>
     </div>
 </div>
 
@@ -308,6 +372,139 @@
             button.addEventListener('click', function() {
                 document.getElementById('ai-question').value = this.textContent;
                 document.getElementById('askAI').click();
+            });
+        });
+    });
+</script>
+<!-- Добавьте в конец questionnaire.html перед закрытием блока content -->
+<div class="modal fade" id="submitChecklistModal" tabindex="-1" aria-labelledby="submitChecklistModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="submitChecklistModalLabel">Проверка перед отправкой</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Пожалуйста, проверьте следующие пункты перед созданием документа:</p>
+
+                <div class="checklist">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="check1" required>
+                        <label class="form-check-label" for="check1">
+                            Я указал правильные и полные данные об истце
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="check2" required>
+                        <label class="form-check-label" for="check2">
+                            Я указал правильные и полные данные об ответчике
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="check3" required>
+                        <label class="form-check-label" for="check3">
+                            Я указал правильные реквизиты договора (номер, дата)
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="check4" required>
+                        <label class="form-check-label" for="check4">
+                            Я указал точную сумму основного долга
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="check5" required>
+                        <label class="form-check-label" for="check5">
+                            Я подробно описал обстоятельства возникновения задолженности
+                        </label>
+                    </div>
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="check6" required>
+                        <label class="form-check-label" for="check6">
+                            Я убедился, что у меня есть все документы, которые я перечислил в приложениях
+                        </label>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-info-circle"></i> Важное напоминание</h6>
+                    <p class="mb-0">Отправляя форму, вы соглашаетесь с тем, что указанные вами данные будут использованы для создания юридического документа. Ответственность за правильность и достоверность предоставленных данных лежит на вас.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Вернуться к редактированию</button>
+                <button type="button" class="btn btn-primary" id="finalSubmitBtn">Подтверждаю и продолжаю</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('questionnaireForm');
+        const finalSubmitBtn = document.getElementById('finalSubmitBtn');
+
+        if (form && finalSubmitBtn) {
+            // Перехватываем отправку формы
+            form.addEventListener('submit', function(e) {
+                const allInputsValid = form.checkValidity();
+
+                if (allInputsValid) {
+                    // Если форма валидна, показываем модальное окно с чек-листом
+                    e.preventDefault();
+                    const checklistModal = new bootstrap.Modal(document.getElementById('submitChecklistModal'));
+                    checklistModal.show();
+                }
+            });
+
+            // Обработчик для кнопки окончательной отправки
+            finalSubmitBtn.addEventListener('click', function() {
+                // Проверяем, что все чекбоксы отмечены
+                const allChecked = Array.from(document.querySelectorAll('.checklist input[type="checkbox"]'))
+                    .every(checkbox => checkbox.checked);
+
+                if (allChecked) {
+                    // Если все проверки прошли, отправляем форму
+                    form.submit();
+                } else {
+                    // Иначе сообщаем пользователю о необходимости подтвердить все пункты
+                    alert('Пожалуйста, подтвердите все пункты проверки перед отправкой.');
+                }
+            });
+        }
+    });
+</script>
+
+<!-- Добавляем функцию для примеров заполнения -->
+<script>
+    // Функция для заполнения примера текста
+    function fillExampleText(fieldId, exampleText) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = exampleText;
+            // Валидируем поле после заполнения
+            const event = new Event('blur');
+            field.dispatchEvent(event);
+        }
+    }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработчик для кнопок с примерами заполнения
+        document.querySelectorAll('.example-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const fieldId = this.getAttribute('data-field');
+                const exampleText = this.getAttribute('data-example');
+
+                console.log('Заполняем поле:', fieldId, 'текстом:', exampleText);
+
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.value = exampleText;
+                    console.log('Поле заполнено');
+                } else {
+                    console.log('Поле не найдено');
+                }
             });
         });
     });

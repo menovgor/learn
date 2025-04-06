@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, send_file, flash
 from utils.document_generator import generate_document, generate_pdf
 from utils.validator import validate_inputs
 from utils.ai_service import enhance_document, get_legal_advice, analyze_document_strength
@@ -6,6 +6,7 @@ from utils.data_protection import encrypt_data, decrypt_data, anonymize_data
 import datetime
 import io
 import config
+import secrets
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -14,7 +15,7 @@ app.secret_key = config.SECRET_KEY
 # Типы документов
 DOCUMENT_TYPES = {
     'debt_collection': {
-        'name': 'Исковое заявление о взыскании задолженности',
+        'name': 'Исковое заявление о взыскании долга по договору займа',
         'description': 'Документ для обращения в суд с требованием о взыскании денежной задолженности с должника.'
     },
     'labor_dispute': {
@@ -24,10 +25,6 @@ DOCUMENT_TYPES = {
     'contract_termination': {
         'name': 'Уведомление о расторжении договора',
         'description': 'Документ для одностороннего расторжения договора с соблюдением требований законодательства.'
-    },
-    'labor_dispute': {
-    'name': 'Исковое заявление по трудовому спору',
-    'description': 'Документ для защиты прав работника в случае нарушения трудового законодательства работодателем.'
     }
 }
 
@@ -40,15 +37,14 @@ QUESTIONS = {
             'fields': [
                 {'name': 'plaintiff_type', 'label': 'Тип истца', 'type': 'select', 'options': [
                     {'value': 'individual', 'label': 'Физическое лицо'},
-                    {'value': 'legal', 'label': 'Юридическое лицо'},
                     {'value': 'entrepreneur', 'label': 'Индивидуальный предприниматель'}
                 ], 'required': True},
-                {'name': 'plaintiff_name', 'label': 'ФИО/Наименование организации', 'type': 'text', 'required': True},
+                {'name': 'plaintiff_name', 'label': 'ФИО', 'type': 'text', 'required': True},
                 {'name': 'plaintiff_address', 'label': 'Адрес', 'type': 'text', 'required': True},
                 {'name': 'plaintiff_phone', 'label': 'Телефон', 'type': 'text', 'required': True},
                 {'name': 'plaintiff_email', 'label': 'Email', 'type': 'email', 'required': False},
-                {'name': 'plaintiff_inn', 'label': 'ИНН', 'type': 'text', 'required': False},
-                {'name': 'plaintiff_ogrn', 'label': 'ОГРН/ОГРНИП', 'type': 'text', 'required': False}
+                {'name': 'plaintiff_inn', 'label': 'ИНН (если есть)', 'type': 'text', 'required': False},
+                {'name': 'plaintiff_signature', 'label': 'Подпись (оставьте пустым для автозаполнения)', 'type': 'text', 'required': False}
             ]
         },
         {
@@ -57,10 +53,9 @@ QUESTIONS = {
             'fields': [
                 {'name': 'defendant_type', 'label': 'Тип ответчика', 'type': 'select', 'options': [
                     {'value': 'individual', 'label': 'Физическое лицо'},
-                    {'value': 'legal', 'label': 'Юридическое лицо'},
                     {'value': 'entrepreneur', 'label': 'Индивидуальный предприниматель'}
                 ], 'required': True},
-                {'name': 'defendant_name', 'label': 'ФИО/Наименование организации', 'type': 'text', 'required': True},
+                {'name': 'defendant_name', 'label': 'ФИО', 'type': 'text', 'required': True},
                 {'name': 'defendant_address', 'label': 'Адрес', 'type': 'text', 'required': True},
                 {'name': 'defendant_inn', 'label': 'ИНН (если известен)', 'type': 'text', 'required': False},
                 {'name': 'defendant_ogrn', 'label': 'ОГРН/ОГРНИП (если известен)', 'type': 'text', 'required': False}
@@ -72,40 +67,33 @@ QUESTIONS = {
             'fields': [
                 {'name': 'court_type', 'label': 'Тип суда', 'type': 'select', 'options': [
                     {'value': 'general', 'label': 'Суд общей юрисдикции'},
-                    {'value': 'arbitrage', 'label': 'Арбитражный суд'}
+                    {'value': 'magistrate', 'label': 'Мировой судья'}
                 ], 'required': True},
                 {'name': 'court_name', 'label': 'Наименование суда', 'type': 'text', 'required': True},
                 {'name': 'court_address', 'label': 'Адрес суда', 'type': 'text', 'required': True}
             ]
         },
         {
-            'id': 'claim_details',
-            'title': 'Детали требования',
+            'id': 'loan_details',
+            'title': 'Детали займа',
             'fields': [
-                {'name': 'contract_number', 'label': 'Номер договора', 'type': 'text', 'required': True},
-                {'name': 'contract_date', 'label': 'Дата договора', 'type': 'date', 'required': True},
-                {'name': 'debt_amount', 'label': 'Сумма основного долга (руб.)', 'type': 'number', 'required': True},
-                {'name': 'penalty_amount', 'label': 'Сумма неустойки (руб.)', 'type': 'number', 'required': False},
-                {'name': 'interest_rate', 'label': 'Процентная ставка по ст. 395 ГК РФ', 'type': 'number',
-                 'required': False},
-                {'name': 'claim_circumstances', 'label': 'Обстоятельства возникновения задолженности',
-                 'type': 'textarea', 'required': True},
-                {'name': 'payment_details', 'label': 'Реквизиты для перечисления средств', 'type': 'textarea',
-                 'required': True}
+                {'name': 'loan_date', 'label': 'Дата заключения договора займа', 'type': 'date', 'required': True},
+                {'name': 'loan_amount', 'label': 'Сумма займа (руб.)', 'type': 'number', 'required': True, 'min': '1', 'step': '0.01'},
+                {'name': 'repayment_date', 'label': 'Срок возврата займа', 'type': 'date', 'required': True},
+                {'name': 'has_loan_agreement', 'label': 'Наличие письменного договора займа', 'type': 'checkbox', 'required': False},
+                {'name': 'has_receipt', 'label': 'Наличие расписки о получении денег', 'type': 'checkbox', 'required': False},
+                {'name': 'has_witnesses', 'label': 'Наличие свидетелей передачи денег', 'type': 'checkbox', 'required': False},
+                {'name': 'has_demand_letter', 'label': 'Направление претензии о возврате долга', 'type': 'checkbox', 'required': False},
+                {'name': 'loan_details', 'label': 'Дополнительные обстоятельства займа', 'type': 'textarea', 'required': False,
+                 'hint_text': 'Укажите дополнительные обстоятельства займа (цель, условия, обстоятельства заключения и т.д.)'}
             ]
         },
         {
-            'id': 'attachments',
-            'title': 'Приложения',
+            'id': 'court_fee',
+            'title': 'Судебные расходы',
             'fields': [
-                {'name': 'has_contract_copy', 'label': 'Копия договора', 'type': 'checkbox', 'required': False},
-                {'name': 'has_payment_docs', 'label': 'Документы об оплате госпошлины', 'type': 'checkbox',
-                 'required': False},
-                {'name': 'has_claim_calculations', 'label': 'Расчет исковых требований', 'type': 'checkbox',
-                 'required': False},
-                {'name': 'has_pretension', 'label': 'Претензия', 'type': 'checkbox', 'required': False},
-                {'name': 'has_correspondence', 'label': 'Переписка сторон', 'type': 'checkbox', 'required': False},
-                {'name': 'other_attachments', 'label': 'Иные документы', 'type': 'textarea', 'required': False}
+                {'name': 'court_fee', 'label': 'Сумма госпошлины (руб.)', 'type': 'number', 'required': True,
+                 'min': '1', 'step': '0.01', 'hint_text': 'Госпошлина рассчитывается в соответствии с пп.1 п.1 ст.333.19 НК РФ'}
             ]
         }
     ],
@@ -194,6 +182,36 @@ QUESTIONS = {
 }
 
 
+# Функция для генерации CSRF-токена
+"""
+def generate_csrf_token():
+    if '_csrf_token' not in session:
+        session['_csrf_token'] = secrets.token_hex(16)
+    return session['_csrf_token']
+
+
+# Защита от CSRF-атак
+@app.before_request
+def csrf_protect():
+    # Пропускаем GET-запросы и запросы к некоторым маршрутам
+    if request.method == 'GET' or request.path.startswith('/static/'):
+        return
+
+    if request.method == 'POST':
+        token = session.get('_csrf_token')
+        form_token = request.form.get('_csrf_token')
+
+        if not token or token != form_token:
+            # Добавляем сообщение пользователю
+            flash('Время сессии истекло. Пожалуйста, попробуйте ещё раз.', 'warning')
+            # Перенаправляем на страницу, с которой пришёл запрос
+            return redirect(request.referrer or url_for('index'))
+
+
+# Добавляем токен во все шаблоны
+app.jinja_env.globals['csrf_token'] = generate_csrf_token
+"""
+
 @app.route('/')
 def index():
     return render_template('index.html', document_types=DOCUMENT_TYPES)
@@ -217,6 +235,9 @@ def clear_data():
 
 @app.route('/questionnaire/<doc_type>', methods=['GET', 'POST'])
 def questionnaire(doc_type):
+    print(f"Доступ к анкете для {doc_type}")
+    print(f"DOCUMENT_TYPES: {DOCUMENT_TYPES}")
+    print(f"QUESTIONS: {QUESTIONS.get(doc_type, 'Не найдено')}")
     if doc_type not in DOCUMENT_TYPES:
         return redirect(url_for('index'))
 
@@ -383,10 +404,3 @@ def teardown_db(exception):
     """
     # Можно добавить логику очистки данных здесь, если требуется
     pass
-
-
-
-
-
-
-
